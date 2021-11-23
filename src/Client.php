@@ -148,7 +148,7 @@ class Client
     public function getOrder($id): Order
     {
         $url = str_replace('new-order', 'order', $this->getUrl(self::DIRECTORY_NEW_ORDER));
-        $url = $url . '/' . $this->getAccount()->getId() . '/' . $id;
+        $url = $url . '/' . $this->account->getId() . '/' . $id;
         $response = $this->request($url, $this->signPayloadKid(null, $url));
         $data = json_decode((string)$response->getBody(), true);
 
@@ -350,6 +350,10 @@ class Client
             $this->signPayloadJWK(
                 [
                     'onlyReturnExisting' => true,
+                    'contact' => [
+                        'mailto:' . $this->getOption('username'),
+                    ],
+                    'termsOfServiceAgreed' => true,
                 ],
                 $this->getUrl(self::DIRECTORY_NEW_ACCOUNT)
             )
@@ -484,7 +488,6 @@ class Client
 
         //Prepare LE account
         $this->loadKeys();
-        $this->tosAgree();
         $this->account = $this->getAccount();
     }
 
@@ -503,27 +506,6 @@ class Client
         $privateKey = $this->getFilesystem()->read($this->getPath('account.pem'));
         $privateKey = openssl_pkey_get_private($privateKey);
         $this->privateKeyDetails = openssl_pkey_get_details($privateKey);
-    }
-
-    /**
-     * Agree to the terms of service
-     *
-     * @throws \Exception
-     */
-    protected function tosAgree()
-    {
-        $this->request(
-            $this->getUrl(self::DIRECTORY_NEW_ACCOUNT),
-            $this->signPayloadJWK(
-                [
-                    'contact'              => [
-                        'mailto:' . $this->getOption('username'),
-                    ],
-                    'termsOfServiceAgreed' => true,
-                ],
-                $this->getUrl(self::DIRECTORY_NEW_ACCOUNT)
-            )
-        );
     }
 
     /**
