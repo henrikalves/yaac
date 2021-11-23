@@ -115,11 +115,13 @@ class Client
      *
      * @param array $config
      *
-     * @type string $mode The mode for ACME (production / staging)
+     * @type string $mode The mode for ACME (production / staging) not used if directory is specified
      * @type Filesystem $fs Filesystem for storage of static data
      * @type string $basePath The base path for the filesystem (used to store account information and csr / keys
      * @type string $username The acme username
      * @type string $source_ip The source IP for Guzzle (via curl.options) to bind to (defaults to 0.0.0.0 [OS default])
+     * @type string $directory which directory to use
+     * @type string $eab External Account Binding token
      * }
      */
     public function __construct($config = [])
@@ -345,15 +347,21 @@ class Client
      */
     public function getAccount(): Account
     {
+
+        $payload = [
+            'contact' => [
+                'mailto:' . $this->getOption('username'),
+            ],
+            'termsOfServiceAgreed' => true,
+        ];
+        if($this->getOption('eab')) {
+		   $payload['externalAccountBinding'] = $this->getOption('eab');
+	    }
+
         $response = $this->request(
             $this->getUrl(self::DIRECTORY_NEW_ACCOUNT),
             $this->signPayloadJWK(
-                [
-                    'contact' => [
-                        'mailto:' . $this->getOption('username'),
-                    ],
-                    'termsOfServiceAgreed' => true,
-                ],
+                $payload,
                 $this->getUrl(self::DIRECTORY_NEW_ACCOUNT)
             )
         );
@@ -371,11 +379,7 @@ class Client
     protected function getHttpClient()
     {
         if ($this->httpClient === null) {
-            $config = [
-                'base_uri' => (
-                ($this->getOption('mode', self::MODE_LIVE) == self::MODE_LIVE) ?
-                    self::DIRECTORY_LIVE : self::DIRECTORY_STAGING),
-            ];
+            $config = [];
             if ($this->getOption('source_ip', false) !== false) {
                 $config['curl.options']['CURLOPT_INTERFACE'] = $this->getOption('source_ip');
             }
@@ -481,7 +485,7 @@ class Client
     protected function init()
     {
         //Load the directories from the LE api
-        $response = $this->getHttpClient()->get('/directory');
+        $response = $this->getHttpClient()->get($this->getOption( 'directory' ) ?? ( $this->getOption( 'mode', self::MODE_LIVE ) == self::MODE_LIVE  ? self::DIRECTORY_LIVE : self::DIRECTORY_STAGING));
         $result = \GuzzleHttp\json_decode((string)$response->getBody(), true);
         $this->directories = $result;
 
