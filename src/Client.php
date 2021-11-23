@@ -349,7 +349,6 @@ class Client
             $this->getUrl(self::DIRECTORY_NEW_ACCOUNT),
             $this->signPayloadJWK(
                 [
-                    'onlyReturnExisting' => true,
                     'contact' => [
                         'mailto:' . $this->getOption('username'),
                     ],
