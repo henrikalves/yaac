@@ -743,7 +743,7 @@ class Client
     {
         $payload = is_array($payload) ? str_replace('\\/', '/', json_encode($payload)) : '';
         $payload = Helper::toSafeString($payload);
-        $protected = Helper::toSafeString(json_encode($this->getKID($url)));
+        $protected = Helper::toSafeString(str_replace('\\/', '/', json_encode($this->getKID($url))));
 
         $result = openssl_sign($protected . '.' . $payload, $signature, $this->getAccountKey(), "SHA256");
         if ($result === false) {
