@@ -380,7 +380,7 @@ class Client
         $accountURL = $response->getHeaderLine('Location');
 
 		if(isset($data['createdAt'])) {
-			$date = (new \DateTime())->setTimestamp(strtotime());
+			$date = (new \DateTime())->setTimestamp(strtotime($data['createdAt']));
 		} else {
 			$date = null;
 		}
