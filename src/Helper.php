@@ -124,6 +124,23 @@ class Helper
         return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 
+	/**
+	 * @param string $input
+	 *
+	 * @return string
+	 */
+	public static function decode(string $input): string
+	{
+		$remainder = \strlen($input) % 4;
+
+		if ($remainder) {
+			$padlen = 4 - $remainder;
+			$input .= str_repeat('=', $padlen);
+		}
+
+		return base64_decode(strtr($input, '-_', '+/'));
+	}
+
     /**
      * Get the key information
      *

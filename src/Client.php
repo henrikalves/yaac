@@ -121,7 +121,8 @@ class Client
      * @type string $username The acme username
      * @type string $source_ip The source IP for Guzzle (via curl.options) to bind to (defaults to 0.0.0.0 [OS default])
      * @type string $directory which directory to use
-     * @type string $eab External Account Binding token
+     * @type string $kid external account binding id
+	 * @type string $hmac external account binding hmac
      * }
      */
     public function __construct($config = [])
@@ -136,6 +137,14 @@ class Client
         if ($this->getOption('username', false) === false) {
             throw new \LogicException('Username not provided');
         }
+
+		if ($this->getOption('kid', false) !== false && $this->getOption('hmac', false) === false) {
+			throw new \LogicException('hmac not provided');
+		}
+
+		if ($this->getOption('hmac', false) !== false && $this->getOption('kid', false) === false) {
+			throw new \LogicException('kid not provided');
+		}
 
         $this->init();
     }
@@ -354,25 +363,32 @@ class Client
             ],
             'termsOfServiceAgreed' => true,
         ];
-        if($this->getOption('eab')) {
-		   $payload['externalAccountBinding'] = $this->getOption('eab');
-	    }
+
+		if($kid = $this->getOption('kid') && $hmac = $this->getOption('hmac')) {
+			$payload['externalAccountBinding'] = $this->signPayloadEAB($kid, $hmac, $this->getUrl(self::DIRECTORY_NEW_ACCOUNT));
+		}
 
         $response = $this->request(
             $this->getUrl(self::DIRECTORY_NEW_ACCOUNT),
-            $this->signPayloadJWK(
-                $payload,
-                $this->getUrl(self::DIRECTORY_NEW_ACCOUNT)
-            )
+			$this->signPayloadJWK(
+				$payload,
+				$this->getUrl(self::DIRECTORY_NEW_ACCOUNT)
+			)
         );
 
         $data = json_decode((string)$response->getBody(), true);
         $accountURL = $response->getHeaderLine('Location');
-        $date = (new \DateTime())->setTimestamp(strtotime($data['createdAt']));
-        return new Account($data['contact'], $date, ($data['status'] == 'valid'), $data['initialIp'], $accountURL);
+
+		if(isset($data['createdAt'])) {
+			$date = (new \DateTime())->setTimestamp(strtotime());
+		} else {
+			$date = null;
+		}
+
+        return new Account($data['contact'], $date, ($data['status'] == 'valid'), $data['initialIp'] ?? null, $accountURL);
     }
 
-    /**
+	/**
      * Returns the ACME api configured Guzzle Client
      * @return HttpClient
      */
@@ -700,7 +716,7 @@ class Client
     {
         $payload = is_array($payload) ? str_replace('\\/', '/', json_encode($payload)) : '';
         $payload = Helper::toSafeString($payload);
-        $protected = Helper::toSafeString(json_encode($this->getJWK($url)));
+        $protected = Helper::toSafeString(str_replace('\\/', '/', json_encode($this->getJWK($url))));
 
         $result = openssl_sign($protected . '.' . $payload, $signature, $this->getAccountKey(), "SHA256");
 
@@ -740,4 +756,39 @@ class Client
             'signature' => Helper::toSafeString($signature),
         ];
     }
+
+	/**
+	 * Transform the payload to the EAB format
+	 *
+	 * @param $kid
+	 * @param $hmac
+	 * @param $url
+	 *
+	 * @return array
+	 * @throws \Exception
+	 */
+	protected function signPayloadEAB($kid, $hmac, $url): array
+	{
+		$payload = str_replace( '\\/', '/', json_encode( $this->getJWKHeader() ) );
+		$payload = Helper::toSafeString( $payload );
+
+		$protected = str_replace( '\\/', '/', json_encode( [
+			"alg" => "HS256",
+			"kid" => $kid,
+			"url" => $url
+		] ) );
+		$protected = Helper::toSafeString($protected);
+
+		$signature = hash_hmac( "sha256", $protected . '.' . $payload, Helper::decode($hmac), true );
+		if ( $signature === false )
+		{
+			throw new \Exception( 'Could not sign' );
+		}
+
+		return [
+			'protected' => $protected,
+			'payload' => $payload,
+			'signature' => Helper::toSafeString( $signature )
+		];
+	}
 }

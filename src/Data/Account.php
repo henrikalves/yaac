@@ -41,9 +41,9 @@ class Account
      */
     public function __construct(
         array $contact,
-        \DateTime $createdAt,
+        ?\DateTime $createdAt,
         bool $isValid,
-        string $initialIp,
+        ?string $initialIp,
         string $accountURL
     ) {
         $this->initialIp = $initialIp;
