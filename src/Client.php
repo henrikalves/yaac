@@ -179,6 +179,34 @@ class Client
         );
     }
 
+	/**
+	 * Get an existing order by Url
+	 *
+	 * @param $url
+	 * @return Order
+	 * @throws \Exception
+	 */
+	public function getOrderByUrl($url): Order
+	{
+		$response = $this->request($url, $this->signPayloadKid(null, $url));
+		$data = json_decode((string)$response->getBody(), true);
+
+		$domains = [];
+		foreach ($data['identifiers'] as $identifier) {
+			$domains[] = $identifier['value'];
+		}
+
+		return new Order(
+			$domains,
+			$url,
+			$data['status'],
+			$data['expires'],
+			$data['identifiers'],
+			$data['authorizations'],
+			$data['finalize']
+		);
+	}
+
     /**
      * Get ready status for order
      *
@@ -188,7 +216,7 @@ class Client
      */
     public function isReady(Order $order): bool
     {
-        $order = $this->getOrder($order->getId());
+        $order = $this->getOrderByUrl($order->getURL());
         return $order->getStatus() == 'ready';
     }
 
