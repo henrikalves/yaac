@@ -364,7 +364,7 @@ class Client
             'termsOfServiceAgreed' => true,
         ];
 
-		if($kid = $this->getOption('kid') && $hmac = $this->getOption('hmac')) {
+		if(($kid = $this->getOption('kid')) && ($hmac = $this->getOption('hmac'))) {
 			$payload['externalAccountBinding'] = $this->signPayloadEAB($kid, $hmac, $this->getUrl(self::DIRECTORY_NEW_ACCOUNT));
 		}
 
