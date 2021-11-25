@@ -742,9 +742,9 @@ class Client
      */
     protected function signPayloadJWK($payload, $url): array
     {
-        $payload = is_array($payload) ? str_replace('\\/', '/', json_encode($payload)) : '';
+        $payload = is_array($payload) ? json_encode($payload, JSON_UNESCAPED_SLASHES) : '';
         $payload = Helper::toSafeString($payload);
-        $protected = Helper::toSafeString(str_replace('\\/', '/', json_encode($this->getJWK($url))));
+        $protected = Helper::toSafeString(json_encode($this->getJWK($url), JSON_UNESCAPED_SLASHES));
 
         $result = openssl_sign($protected . '.' . $payload, $signature, $this->getAccountKey(), "SHA256");
 
@@ -769,9 +769,9 @@ class Client
      */
     protected function signPayloadKid($payload, $url): array
     {
-        $payload = is_array($payload) ? str_replace('\\/', '/', json_encode($payload)) : '';
+        $payload = is_array($payload) ? json_encode($payload, JSON_UNESCAPED_SLASHES) : '';
         $payload = Helper::toSafeString($payload);
-        $protected = Helper::toSafeString(str_replace('\\/', '/', json_encode($this->getKID($url))));
+        $protected = Helper::toSafeString(json_encode($this->getKID($url), JSON_UNESCAPED_SLASHES));
 
         $result = openssl_sign($protected . '.' . $payload, $signature, $this->getAccountKey(), "SHA256");
         if ($result === false) {
@@ -797,14 +797,14 @@ class Client
 	 */
 	protected function signPayloadEAB($kid, $hmac, $url): array
 	{
-		$payload = str_replace( '\\/', '/', json_encode( $this->getJWKHeader() ) );
+		$payload = json_encode( $this->getJWKHeader(), JSON_UNESCAPED_SLASHES );
 		$payload = Helper::toSafeString( $payload );
 
-		$protected = str_replace( '\\/', '/', json_encode( [
+		$protected = json_encode( [
 			"alg" => "HS256",
 			"kid" => $kid,
 			"url" => $url
-		] ) );
+		], JSON_UNESCAPED_SLASHES );
 		$protected = Helper::toSafeString($protected);
 
 		$signature = hash_hmac( "sha256", $protected . '.' . $payload, Helper::decode($hmac), true );
