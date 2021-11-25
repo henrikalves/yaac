@@ -123,6 +123,7 @@ class Client
      * @type string $directory which directory to use
      * @type string $kid external account binding id
 	 * @type string $hmac external account binding hmac
+	 * @type string $countryName country the csr will have
      * }
      */
     public function __construct($config = [])
@@ -369,7 +370,7 @@ class Client
 	 */
 	public function finalizeOrder(Order &$order): Certificate {
 		$privateKey = Helper::getNewKey();
-		$csr = Helper::getCsr($order->getDomains(), $privateKey);
+		$csr = Helper::getCsr($order->getDomains(), $privateKey, $this->getOption('countryName', 'NL'));
 		$der = Helper::toDer($csr);
 
 		$response = $this->request(

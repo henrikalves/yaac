@@ -63,16 +63,17 @@ class Helper
         return $pem;
     }
 
-    /**
-     * Get a new CSR
-     *
-     * @param array $domains
-     * @param       $key
-     *
-     * @return string
-     * @throws \Exception
-     */
-    public static function getCsr(array $domains, $key): string
+	/**
+	 * Get a new CSR
+	 *
+	 * @param array  $domains
+	 * @param        $key
+	 * @param string $countryName
+	 *
+	 * @return string
+	 * @throws \Exception
+	 */
+    public static function getCsr(array $domains, $key, $countryName = "NL"): string
     {
         $primaryDomain = current(($domains));
         $config = [
@@ -90,7 +91,7 @@ class Helper
         $fn = tempnam(sys_get_temp_dir(), md5(microtime(true)));
         file_put_contents($fn, implode("\n", $config));
         $csr = openssl_csr_new([
-            'countryName' => 'NL',
+            'countryName' => $countryName,
             'commonName'  => $primaryDomain,
         ], $key, [
             'config'         => $fn,
