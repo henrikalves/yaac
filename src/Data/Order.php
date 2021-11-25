@@ -61,20 +61,24 @@ class Order
         array $domains,
         string $url,
         string $status,
-        string $expiresAt,
+        ?string $expiresAt,
         array $identifiers,
         array $authorizations,
         string $finalizeURL,
 		?string $certificateURL = null
     ) {
-        //Handle the microtime date format
-        if (strpos($expiresAt, '.') !== false) {
-            $expiresAt = substr($expiresAt, 0, strpos($expiresAt, '.')) . 'Z';
-        }
+		if($expiresAt)
+		{
+			//Handle the microtime date format
+			if ( strpos( $expiresAt, '.' ) !== false )
+			{
+				$expiresAt = substr( $expiresAt, 0, strpos( $expiresAt, '.' ) ) . 'Z';
+			}
+			$this->expiresAt = ( new \DateTime() )->setTimestamp( strtotime( $expiresAt ) );
+		}
         $this->domains = $domains;
         $this->url = $url;
         $this->status = $status;
-        $this->expiresAt = (new \DateTime())->setTimestamp(strtotime($expiresAt));
         $this->identifiers = $identifiers;
         $this->authorizations = $authorizations;
         $this->finalizeURL = $finalizeURL;
@@ -122,7 +126,7 @@ class Order
      * Returns expires at
      * @return \DateTime
      */
-    public function getExpiresAt(): \DateTime
+    public function getExpiresAt(): ?\DateTime
     {
         return $this->expiresAt;
     }

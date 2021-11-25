@@ -172,10 +172,11 @@ class Client
             $domains,
             $url,
             $data['status'],
-            $data['expires'],
+            $data['expires'] ?? null,
             $data['identifiers'],
             $data['authorizations'],
-            $data['finalize']
+            $data['finalize'],
+			$data['certificate'] ?? null
         );
     }
 
@@ -200,10 +201,11 @@ class Client
 			$domains,
 			$url,
 			$data['status'],
-			$data['expires'],
+			$data['expires'] ?? null,
 			$data['identifiers'],
 			$data['authorizations'],
-			$data['finalize']
+			$data['finalize'],
+			$data['certificate'] ?? null
 		);
 	}
 
@@ -252,7 +254,7 @@ class Client
             $domains,
             $response->getHeaderLine('location'),
             $data['status'],
-            $data['expires'],
+			$data['expires'] ?? null,
             $data['identifiers'],
             $data['authorizations'],
             $data['finalize']
@@ -384,11 +386,11 @@ class Client
 			$order->getDomains(),
 			$order->getURL(),
 			$data['status'],
-			$data['expires'],
+			$data['expires'] ?? null,
 			$data['identifiers'],
 			$data['authorizations'],
 			$data['finalize'],
-			$data['certificate']
+			$data['certificate'] ?? null
 		);
 
 		return new Certificate($privateKey, $csr);
