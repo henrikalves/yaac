@@ -44,14 +44,27 @@ class Certificate
      * @param $chain
      * @throws \Exception
      */
-    public function __construct($privateKey, $csr, $chain)
+    public function __construct($privateKey, $csr, $chain = null)
     {
         $this->privateKey = $privateKey;
         $this->csr = $csr;
         $this->chain = $chain;
-        list($this->certificate, $this->intermediateCertificate) = Helper::splitCertificate($chain);
-        $this->expiryDate = Helper::getCertExpiryDate($chain);
+		if($chain)
+		{
+			list( $this->certificate, $this->intermediateCertificate ) = Helper::splitCertificate( $chain );
+			$this->expiryDate = Helper::getCertExpiryDate( $chain );
+		}
     }
+
+	/**
+	 * @param $chain
+	 *
+	 * @throws \Exception
+	 */
+	public function setChain($chain): void {
+		list( $this->certificate, $this->intermediateCertificate ) = Helper::splitCertificate( $chain );
+		$this->expiryDate = Helper::getCertExpiryDate( $chain );
+	}
 
     /**
      * Get the certificate signing request
@@ -66,7 +79,7 @@ class Certificate
      * Get the expiry date of the current certificate
      * @return \DateTime
      */
-    public function getExpiryDate(): \DateTime
+    public function getExpiryDate(): ?\DateTime
     {
         return $this->expiryDate;
     }
@@ -77,7 +90,7 @@ class Certificate
      * @param bool $asChain
      * @return string
      */
-    public function getCertificate($asChain = true): string
+    public function getCertificate($asChain = true): ?string
     {
         return $asChain ? $this->chain : $this->certificate;
     }
@@ -86,7 +99,7 @@ class Certificate
      * Return the intermediate certificate as a multi line string
      * @return string
      */
-    public function getIntermediate(): string
+    public function getIntermediate(): ?string
     {
         return $this->intermediateCertificate;
     }

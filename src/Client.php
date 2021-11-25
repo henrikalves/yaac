@@ -354,26 +354,63 @@ class Client
      */
     public function getCertificate(Order $order): Certificate
     {
-        $privateKey = Helper::getNewKey();
-        $csr = Helper::getCsr($order->getDomains(), $privateKey);
-        $der = Helper::toDer($csr);
+		$cert = $this->finalizeOrder($order);
 
-        $response = $this->request(
-            $order->getFinalizeURL(),
-            $this->signPayloadKid(
-                ['csr' => Helper::toSafeString($der)],
-                $order->getFinalizeURL()
-            )
-        );
-
-        $data = json_decode((string)$response->getBody(), true);
-        $certificateResponse = $this->request(
-            $data['certificate'],
-            $this->signPayloadKid(null, $data['certificate'])
-        );
-        $chain = $str = preg_replace('/^[ \t]*[\r\n]+/m', '', (string)$certificateResponse->getBody());
-        return new Certificate($privateKey, $csr, $chain);
+		return $this->downloadCertificate($order, $cert);
     }
+
+	/**
+	 * @param Order $order
+	 *
+	 * @return Certificate
+	 * @throws \Exception
+	 */
+	public function finalizeOrder(Order &$order): Certificate {
+		$privateKey = Helper::getNewKey();
+		$csr = Helper::getCsr($order->getDomains(), $privateKey);
+		$der = Helper::toDer($csr);
+
+		$response = $this->request(
+			$order->getFinalizeURL(),
+			$this->signPayloadKid(
+				['csr' => Helper::toSafeString($der)],
+				$order->getFinalizeURL()
+			)
+		);
+
+		$data = json_decode((string)$response->getBody(), true);
+
+		$order = new Order(
+			$order->getDomains(),
+			$order->getURL(),
+			$data['status'],
+			$data['expires'],
+			$data['identifiers'],
+			$data['authorizations'],
+			$data['finalize'],
+			$data['certificate']
+		);
+
+		return new Certificate($privateKey, $csr);
+	}
+
+	/**
+	 * @param Order       $order
+	 * @param Certificate $certificate
+	 *
+	 * @return Certificate
+	 * @throws \Exception
+	 */
+	public function downloadCertificate(Order $order, Certificate $certificate): Certificate {
+		$certificateResponse = $this->request(
+			$order->getCertificateURL(),
+			$this->signPayloadKid(null, $order->getCertificateURL())
+		);
+		$chain = $str = preg_replace('/^[ \t]*[\r\n]+/m', '', (string)$certificateResponse->getBody());
+		$certificate->setChain($chain);
+
+		return $certificate;
+	}
 
 
     /**

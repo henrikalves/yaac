@@ -36,6 +36,11 @@ class Order
      */
     protected $finalizeURL;
 
+	/**
+	 * @var string
+	 */
+	protected $certificateURL;
+
     /**
      * @var array
      */
@@ -59,7 +64,8 @@ class Order
         string $expiresAt,
         array $identifiers,
         array $authorizations,
-        string $finalizeURL
+        string $finalizeURL,
+		?string $certificateURL
     ) {
         //Handle the microtime date format
         if (strpos($expiresAt, '.') !== false) {
@@ -72,6 +78,7 @@ class Order
         $this->identifiers = $identifiers;
         $this->authorizations = $authorizations;
         $this->finalizeURL = $finalizeURL;
+		$this->certificateURL = $certificateURL;
     }
 
 
@@ -137,6 +144,15 @@ class Order
     {
         return $this->finalizeURL;
     }
+
+	/**
+	 * Returns url
+	 * @return string
+	 */
+	public function getCertificateURL(): ?string
+	{
+		return $this->certificateURL;
+	}
 
     /**
      * Returns domains for the order
