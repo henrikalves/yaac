@@ -65,7 +65,7 @@ class Order
         array $identifiers,
         array $authorizations,
         string $finalizeURL,
-		?string $certificateURL
+		?string $certificateURL = null
     ) {
         //Handle the microtime date format
         if (strpos($expiresAt, '.') !== false) {
