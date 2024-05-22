@@ -580,9 +580,6 @@ class Client
 
     /**
      * Load the keys in memory
-     *
-     * @throws \League\Flysystem\FileExistsException
-     * @throws \League\Flysystem\FileNotFoundException
      */
     protected function loadKeys()
     {
