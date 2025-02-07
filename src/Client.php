@@ -7,6 +7,7 @@ use Afosto\Acme\Data\Authorization;
 use Afosto\Acme\Data\Certificate;
 use Afosto\Acme\Data\Challenge;
 use Afosto\Acme\Data\Order;
+use Afosto\Acme\Data\RenewalInfo;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
@@ -49,6 +50,11 @@ class Client
      * Order certificate directory
      */
     const DIRECTORY_NEW_ORDER = 'newOrder';
+
+	/**
+	 * Order certificate directory
+	 */
+	const DIRECTORY_RENEWAL_INFO = 'renewalInfo';
 
     /**
      * Http validation
@@ -224,14 +230,16 @@ class Client
     }
 
 
-    /**
-     * Create a new order
-     *
-     * @param array $domains
-     * @return Order
-     * @throws \Exception
-     */
-    public function createOrder(array $domains): Order
+	/**
+	 * Create a new order
+	 *
+	 * @param array       $domains
+	 * @param string|null $replaces ARI CertID of the old Certificate
+	 *
+	 * @return Order
+	 * @throws \Exception
+	 */
+    public function createOrder(array $domains, ?string $replaces = null): Order
     {
         $identifiers = [];
         foreach ($domains as $domain) {
@@ -242,11 +250,17 @@ class Client
                 ];
         }
 
+		$payload = [
+			'identifiers' => $identifiers,
+		];
+
+		if($replaces) {
+			$payload['replaces'] = $replaces;
+		}
+
         $url = $this->getUrl(self::DIRECTORY_NEW_ORDER);
         $response = $this->request($url, $this->signPayloadKid(
-            [
-                'identifiers' => $identifiers,
-            ],
+			$payload,
             $url
         ));
 
@@ -361,6 +375,34 @@ class Client
 
 		return $this->downloadCertificate($order, $cert);
     }
+
+	/**
+	 * Get Renewal information for a certificate
+	 *
+	 * @param string $cert
+	 * @return RenewalInfo
+	 * @throws \Exception
+	 */
+	public function getRenewalInfo(string $cert): RenewalInfo {
+		$parsedCert = openssl_x509_parse($cert);
+		if ($parsedCert === false) {
+			throw new \Exception('Could not parse certificate');
+		}
+
+		$serialNumberHex = $parsedCert['serialNumberHex'];
+		$authorityKeyIdentifierHex = str_replace(':', '', $parsedCert['extensions']['authorityKeyIdentifier']);
+
+		$serialBinary = hex2bin($serialNumberHex);
+		$serial = Helper::tosafeString($serialBinary);
+
+		$akiBinary = hex2bin($authorityKeyIdentifierHex);
+		$aki = Helper::tosafeString($akiBinary);
+
+		$response = $this->request($this->getUrl(self::DIRECTORY_RENEWAL_INFO) . sprintf("/%s.%s", $aki, $serial), [], 'GET');
+		$data = json_decode((string)$response->getBody(), true);
+
+		return new RenewalInfo($data['suggestedWindow']['start'], $data['suggestedWindow']['end']);
+	}
 
 	/**
 	 * @param Order $order
@@ -660,13 +702,18 @@ class Client
     protected function request($url, $payload = [], $method = 'POST'): ResponseInterface
     {
         try {
-            $response = $this->getHttpClient()->request($method, $url, [
-                'json'    => $payload,
-                'headers' => [
-                    'Content-Type' => 'application/jose+json',
-                ]
-            ]);
-            $this->nonce = $response->getHeaderLine('replay-nonce');
+			if($method !== 'GET') {
+				$response = $this->getHttpClient()->request($method, $url, [
+					'json'    => $payload,
+					'headers' => [
+						'Content-Type' => 'application/jose+json',
+					]
+				]);
+				$this->nonce = $response->getHeaderLine('replay-nonce');
+			} else {
+				$response = $this->getHttpClient()->request($method, $url);
+			}
+
         } catch (ClientException $e) {
             throw $e;
         }
