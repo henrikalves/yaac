@@ -495,7 +495,7 @@ class Client
 			$date = null;
 		}
 
-        return new Account($data['contact'], $date, ($data['status'] == 'valid'), $data['initialIp'] ?? null, $accountURL);
+        return new Account($data['contact'] ?? [], $date, ($data['status'] == 'valid'), $data['initialIp'] ?? null, $accountURL);
     }
 
 	/**
