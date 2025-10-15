@@ -69,13 +69,13 @@ class Helper
 	 * @param array  $domains
 	 * @param        $key
 	 * @param string $countryName
+	 * @param bool   $commonName
 	 *
 	 * @return string
 	 * @throws \Exception
 	 */
-    public static function getCsr(array $domains, $key, $countryName = "NL"): string
+    public static function getCsr(array $domains, $key, $countryName = "NL", $commonName = true): string
     {
-        $primaryDomain = current(($domains));
         $config = [
             '[req]',
             'distinguished_name=req_distinguished_name',
@@ -90,10 +90,12 @@ class Helper
 
         $fn = tempnam(sys_get_temp_dir(), md5(microtime(true)));
         file_put_contents($fn, implode("\n", $config));
-        $csr = openssl_csr_new([
-            'countryName' => $countryName,
-            'commonName'  => $primaryDomain,
-        ], $key, [
+		$params = ['countryName' => $countryName];
+		if($commonName) {
+			$primaryDomain = current(($domains));
+			$params['commonName']  = $primaryDomain;
+		}
+        $csr = openssl_csr_new($params, $key, [
             'config'         => $fn,
             'req_extensions' => 'SAN',
             'digest_alg'     => 'sha512',

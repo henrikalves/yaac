@@ -412,7 +412,7 @@ class Client
 	 */
 	public function finalizeOrder(Order &$order): Certificate {
 		$privateKey = Helper::getNewKey();
-		$csr = Helper::getCsr($order->getDomains(), $privateKey, $this->getOption('countryName', 'NL'));
+		$csr = Helper::getCsr($order->getDomains(), $privateKey, $this->getOption('countryName', 'NL'), $this->getOption('commonName', true));
 		$der = Helper::toDer($csr);
 
 		$response = $this->request(
