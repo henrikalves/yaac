@@ -377,13 +377,15 @@ class Client
     }
 
 	/**
-	 * Get Renewal information for a certificate
-	 *
+	 * Get ARI CertID for a certificate
+ *
 	 * @param string $cert
-	 * @return RenewalInfo
+	 *
+	 * @return string
 	 * @throws \Exception
 	 */
-	public function getRenewalInfo(string $cert): RenewalInfo {
+	public function getARI(string $cert): string
+	{
 		$parsedCert = openssl_x509_parse($cert);
 		if ($parsedCert === false) {
 			throw new \Exception('Could not parse certificate');
@@ -398,7 +400,18 @@ class Client
 		$akiBinary = hex2bin($authorityKeyIdentifierHex);
 		$aki = Helper::tosafeString($akiBinary);
 
-		$response = $this->request($this->getUrl(self::DIRECTORY_RENEWAL_INFO) . sprintf("/%s.%s", $aki, $serial), [], 'GET');
+		return sprintf("%s.%s", $aki, $serial);
+	}
+
+	/**
+	 * Get Renewal information for a certificate
+	 *
+	 * @param string $cert
+	 * @return RenewalInfo
+	 * @throws \Exception
+	 */
+	public function getRenewalInfo(string $cert): RenewalInfo {
+		$response = $this->request($this->getUrl(self::DIRECTORY_RENEWAL_INFO) . "/" . $this->getARI($cert), [], 'GET');
 		$data = json_decode((string)$response->getBody(), true);
 
 		return new RenewalInfo($data['suggestedWindow']['start'], $data['suggestedWindow']['end']);
