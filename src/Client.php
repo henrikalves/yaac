@@ -392,6 +392,17 @@ class Client
 		}
 
 		$serialNumberHex = $parsedCert['serialNumberHex'];
+
+		// RFC 9773 Section 4.1 requires the DER-encoded INTEGER value bytes of
+		// serialNumber. When the high bit of the first byte is set (>= 0x80) DER
+		// prepends a 0x00 sign byte to keep the integer positive; openssl's hex
+		// output strips that, so add it back. Boulder (LE) accepts either form,
+		// but Sectigo (ZeroSSL) is strict and rejects newOrder with HTTP 401
+		// "replaces field does not identify a certificate" if the byte is missing.
+		if (preg_match('/^[89a-f]/i', $serialNumberHex)) {
+			$serialNumberHex = '00' . $serialNumberHex;
+		}
+
 		$authorityKeyIdentifierHex = str_replace(':', '', $parsedCert['extensions']['authorityKeyIdentifier']);
 
 		$serialBinary = hex2bin($serialNumberHex);
@@ -400,7 +411,7 @@ class Client
 		$akiBinary = hex2bin($authorityKeyIdentifierHex);
 		$aki = Helper::tosafeString($akiBinary);
 
-		return sprintf("%s.%s", $aki, $serial);
+		return sprintf('%s.%s', $aki, $serial);
 	}
 
 	/**
