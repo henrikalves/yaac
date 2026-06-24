@@ -298,6 +298,9 @@ class Client
             $authorization = new Authorization($data['identifier']['value'], $data['expires'], $this->getDigest());
 
             foreach ($data['challenges'] as $challengeData) {
+				if($challengeData['type'] !== 'dns-01') {
+					continue;
+				}
                 $challenge = new Challenge(
                     $authorizationURL,
                     $challengeData['type'],
